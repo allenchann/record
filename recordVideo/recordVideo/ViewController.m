@@ -11,21 +11,18 @@
 #import <AVFoundation/AVFoundation.h>
 #import <objc/runtime.h>
 #import <CoreAudio/CoreAudioTypes.h>
-#define kRecordAudioFile @"myRecord.caf"
+
 
 @interface ViewController ()<UIImagePickerControllerDelegate,UINavigationControllerDelegate,AVAudioRecorderDelegate,AVAudioPlayerDelegate>
 
-{
-    NSURL *recordedTmpFile;
-    
-    AVAudioPlayer *_audioPlayer;
-}
+@property(nonatomic,strong)NSURL *recordedTmpFile;
 @property(nonatomic,strong)UIImagePickerController *picker;
 @property (nonatomic, strong) AVPlayer *player;
-//@property (nonatomic, strong) AVAudioPlayer *audioPlayer;
+@property (weak, nonatomic) IBOutlet UIButton *playBtn;
+@property (nonatomic, strong) AVAudioPlayer *audioPlayer;
 @property (nonatomic, strong) AVAudioRecorder *arecorder;
 @property (weak, nonatomic) IBOutlet UIImageView *photo;
-@property (weak, nonatomic) IBOutlet UIButton *playBtn;
+
 
 @end
 
@@ -44,38 +41,6 @@
     
     
 //    self.audioPlayer;
-    
-}
-
-//视频录制
-- (IBAction)record:(id)sender
-{
-    self.picker.sourceType = UIImagePickerControllerSourceTypeCamera;
-    self.picker.cameraCaptureMode = UIImagePickerControllerCameraCaptureModeVideo;
-    [self presentViewController:self.picker animated:YES completion:nil];
-    
-}
-
-//读取本地视频
-- (IBAction)show:(id)sender
-{
-    self.picker.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
-    [self presentViewController:self.picker animated:YES completion:nil];
-}
-
-//开始录音
-- (IBAction)recordSounds:(UIButton *)sender
-{
-    if (sender.selected == YES)
-    {
-        [_arecorder stop];
-        _arecorder = nil;
-    }
-    else
-    {
-        [self.arecorder record];
-    }
-    sender.selected = !sender.selected;
     
 }
 
@@ -102,7 +67,6 @@
     else
         return _arecorder;
 }
-
 /**
  *  取得录音文件存储路径
  *
@@ -110,7 +74,7 @@
  */
 -(NSURL *)getSavePath{
     NSString *urlStr=[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
-    urlStr=[urlStr stringByAppendingPathComponent:kRecordAudioFile];
+    urlStr=[urlStr stringByAppendingPathComponent:@"myRecord.caf"];
     NSLog(@"file path:%@",urlStr);
     NSURL *url=[NSURL fileURLWithPath:urlStr];
     return url;
@@ -137,47 +101,84 @@
     return dicM;
 }
 
-- (void)audioRecorderDidFinishRecording:(AVAudioRecorder *)recorder successfully:(BOOL)flag
+//开始录音
+- (IBAction)recordSounds:(UIButton *)sender
 {
-    _audioPlayer = nil;
-    NSLog(@"录音完成!");
-}
-
-//播放录音
-- (IBAction)playSounds:(UIButton *)sender
-{
-    if (sender.selected == NO)
+    if (sender.selected == YES)
     {
-        if (!_audioPlayer) {
-            NSURL *url=[self getSavePath];
-            NSError *error=nil;
-            _audioPlayer=[[AVAudioPlayer alloc]initWithContentsOfURL:url error:&error];
-            [_audioPlayer prepareToPlay];
-            [_audioPlayer play];
-            _audioPlayer.delegate = self;
-            if (error) {
-                NSLog(@"创建播放器过程中发生错误，错误信息：%@",error.localizedDescription);
-            }
-        }
+        [_arecorder stop];
+        _arecorder = nil;
     }
     else
     {
+        [self.arecorder record];
+    }
+    sender.selected = !sender.selected;
+    
+}
+
+//懒加载
+- (AVAudioPlayer *)audioPlayer
+{
+    if (!_audioPlayer) {
+        NSURL *url=[self getSavePath];
+        NSError *error=nil;
+        _audioPlayer=[[AVAudioPlayer alloc]initWithContentsOfURL:url error:&error];
+        [_audioPlayer prepareToPlay];
+        [_audioPlayer play];
+        _audioPlayer.delegate = self;
+        return _audioPlayer;
+    }
+    else
+        return _audioPlayer;
+}
+
+//播放录音
+-(IBAction)playSounds:(UIButton *)sender
+{
+    //判断是否正在播放
+    if (sender.selected == NO)
+    {
+        //播放音频
+        [self.audioPlayer play];
+    }
+    else
+    {
+        //停止播放音频,并销毁播放器
+        [self.audioPlayer stop];
         _audioPlayer = nil;
     }
-
+    //改变按钮状态
     sender.selected = !sender.selected;
-
 }
-
-
-
-
-- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
+//播放完毕代理方法
+-(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
 {
+    //销毁播放器
     player = nil;
+    //改变按钮状态
     _playBtn.selected = NO;
-
 }
+
+
+//视频录制
+- (IBAction)record:(id)sender
+{
+    self.picker.sourceType = UIImagePickerControllerSourceTypeCamera;
+    self.picker.cameraCaptureMode = UIImagePickerControllerCameraCaptureModeVideo;
+    [self presentViewController:self.picker animated:YES completion:nil];
+    
+}
+
+//读取本地视频
+- (IBAction)show:(id)sender
+{
+    self.picker.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
+    [self presentViewController:self.picker animated:YES completion:nil];
+}
+
+
+
 
 
 
