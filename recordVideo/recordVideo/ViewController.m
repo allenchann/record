@@ -47,7 +47,8 @@
 - (AVAudioRecorder *)arecorder
 {
     
-    NSLog(@"asd");
+    AVAudioSession * audioSession = [AVAudioSession sharedInstance];
+    [audioSession setCategory:AVAudioSessionCategoryMultiRoute error: nil];
     
     if (!_arecorder) {
         //创建录音文件保存路径
@@ -120,6 +121,9 @@
 //懒加载
 - (AVAudioPlayer *)audioPlayer
 {
+    AVAudioSession * audioSession = [AVAudioSession sharedInstance];
+    [audioSession setCategory:AVAudioSessionCategoryPlayback error: nil];
+    
     if (!_audioPlayer) {
         NSURL *url=[self getSavePath];
         NSError *error=nil;
